@@ -8,17 +8,17 @@ import numpy as np
 from dataclasses import field
 from .autodiff import Context, Variable, backpropagate, central_difference
 from .scalar_functions import (
-    EQ,
-    LT,
     Add,
     Exp,
     Inv,
-    Log,
     Mul,
-    Neg,
-    ReLU,
     ScalarFunction,
+    LT,
+    Neg,
+    Log,
     Sigmoid,
+    ReLU,
+    EQ,
 )
 
 ScalarLike = Union[float, int, "Scalar"]
@@ -112,48 +112,87 @@ class Scalar:
         return self.history is not None and self.history.last_fn is None
 
     def is_constant(self) -> bool:
+        """Check if this variable is constant."""
         return self.history is None
 
     @property
     def parents(self) -> Iterable[Variable]:
-        """Get the variables used to create this one."""
+        """Get the parent variables of this variable."""
         assert self.history is not None
         return self.history.inputs
 
     def chain_rule(self, d_output: Any) -> Iterable[Tuple[Variable, Any]]:
+        """Apply the chain rule to compute gradients."""
         h = self.history
         assert h is not None
         assert h.last_fn is not None
         assert h.ctx is not None
 
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # TODO: Implement for Task 1.3.
+        x = h.last_fn._backward(h.ctx, d_output)
+        return list(zip(h.inputs, x))
 
     def backward(self, d_output: Optional[float] = None) -> None:
-        """Calls autodiff to fill in the derivatives for the history of this object.
-
-        Args:
-        ----
-            d_output (number, opt): starting derivative to backpropagate through the model
-                                   (typically left out, and assumed to be 1.0).
-
-        """
+        """Calls autodiff to fill in the derivatives for the history of this object."""
         if d_output is None:
             d_output = 1.0
         backpropagate(self, d_output)
 
-    raise NotImplementedError("Need to include this file from past assignment.")
+    # TODO: Implement for Task 1.2.
+    def __eq__(self, b: ScalarLike) -> Scalar:
+        """Check equality between this variable and another scalar."""
+        return EQ.apply(b, self)
+
+    def __lt__(self, b: ScalarLike) -> Scalar:
+        """Check if this variable is less than another scalar."""
+        return LT.apply(self, b)
+
+    def __gt__(self, b: ScalarLike) -> Scalar:
+        """Check if this variable is greater than another scalar."""
+        return LT.apply(b, self)
+
+    def __sub__(self, b: ScalarLike) -> Scalar:
+        """Subtract another scalar from this variable."""
+        return Add.apply(self, -b)
+
+    def __neg__(self) -> Scalar:
+        """Negate this variable."""
+        return Neg.apply(self)
+
+    def __add__(self, b: ScalarLike) -> Scalar:
+        """Add another scalar to this variable."""
+        return Add.apply(self, b)
+
+    def log(self) -> Scalar:
+        """Compute the natural logarithm of this variable."""
+        return Log.apply(self)
+
+    def exp(self) -> Scalar:
+        """Compute the exponential of this variable."""
+        return Exp.apply(self)
+
+    def sigmoid(self) -> Scalar:
+        """Compute the sigmoid of this variable."""
+        return Sigmoid.apply(self)
+
+    def relu(self) -> Scalar:
+        """Compute the ReLU (Rectified Linear Unit) of this variable."""
+        return ReLU.apply(self)
 
 
 def derivative_check(f: Any, *scalars: Scalar) -> None:
-    """Checks that autodiff works on a python function.
-    Asserts False if derivative is incorrect.
+    """Check the correctness of the autodifferentiation implementation.
 
-    Parameters
-    ----------
-        f : function from n-scalars to 1-scalar.
-        *scalars  : n input scalar values.
+    This function verifies that the computed derivatives match the
+    expected values from a central difference approximation.
+
+    Args:
+    ----
+        f (Any): A function that takes n scalars and returns a single scalar.
+        *scalars (Scalar): The input scalar values to the function.
 
     """
+    print(f"\n{f}")
     out = f(*scalars)
     out.backward()
 
