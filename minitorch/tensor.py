@@ -399,18 +399,20 @@ class Tensor:
 
     def mean(self, dim: Optional[int] = None) -> Tensor:
         """Compute the mean over all elements or along a specific dimension."""
-        if dim is not None:
-            return self.sum(dim) / self.shape[dim]
-        else:
+        if dim is None:
             return self.sum() / self.size
+        else:
+            return self.sum(dim) / self.shape[dim]
 
     def permute(self, *order: int) -> Tensor:
         """Permute the dimensions of the tensor."""
-        return Permute.apply(self, tensor(list(order)))
+        permute_order = tensor(list(order))
+        return Permute.apply(self, permute_order)
 
     def view(self, *shape: int) -> Tensor:
         """View the tensor as a different shape."""
-        return View.apply(self, tensor(list(shape)))
+        view_shape = tensor(list(shape))
+        return View.apply(self, view_shape)
 
     def zero_grad_(self) -> None:
         """Set the gradient to None."""
